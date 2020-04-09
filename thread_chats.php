@@ -532,9 +532,9 @@ class thread_chats extends rcube_plugin {
 
             $args['body'] .= <<<EOT
                 <br style="clear: both;" />
-                <button onclick="parent.document.location='/?_task=mail&_reply_uid={$message->uid}&_mbox=Sent&_action=compose'">Reply</button>
-                <button onclick="parent.document.location='/?_task=mail&_reply_uid={$message->uid}&_mbox=Sent&_all=all&_action=compose'">Reply all</button>
-                <button onclick="parent.document.location='/?_task=mail&_forward_uid={$message->uid}&_mbox=INBOX&_action=compose'">Forward</button>
+                <button onclick="parent.document.location='?_task=mail&_reply_uid={$message->uid}&_mbox=Sent&_action=compose'">Reply</button>
+                <button onclick="parent.document.location='?_task=mail&_reply_uid={$message->uid}&_mbox=Sent&_all=all&_action=compose'">Reply all</button>
+                <button onclick="parent.document.location='?_task=mail&_forward_uid={$message->uid}&_mbox=INBOX&_action=compose'">Forward</button>
 EOT;
 
             $part_index += 1;
