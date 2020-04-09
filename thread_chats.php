@@ -306,17 +306,23 @@ class thread_chats extends rcube_plugin {
                     // display thumbnails
                     if ($thumbnail_size) {
                         $supported = in_array($mimetype, $client_mimetypes);
+
                         $show_link_attr = array(
-                            'href'    => $MESSAGE->get_part_url($attach_prop->mime_id, false),
-                            'onclick' => sprintf(
-                                'return %s.command(\'load-attachment\',\'%s\',this)',
-                                rcmail_output::JS_OBJECT_NAME,
-                                $attach_prop->mime_id
-                            )
+//                            'href'    => $MESSAGE->get_part_url($attach_prop->mime_id, false),
+                            'href' => "?_task=mail&_frame=1&_mbox={$MESSAGE->folder}&_uid={$MESSAGE->uid}&_part={$attach_prop->mime_id}&_action=get&_extwin=1",
+                            'target' => '_blank',
+//                            'onclick' => sprintf(
+//                                'return %s.command(\'load-attachment\',\'%s\',this)',
+//                                rcmail_output::JS_OBJECT_NAME,
+//                                $attach_prop->mime_id
+//                            )
                         );
                         $download_link_attr = array(
-                            'href'  => $show_link_attr['href'] . '&_download=1',
+//                            'href'  => $show_link_attr['href'] . '&_download=1',
+                            'href'  => $MESSAGE->get_part_url($attach_prop->mime_id, false) . '&_download=1',
+                            'target' => '_blank'
                         );
+
                         $show_link     = html::a($show_link_attr + array('class' => 'open'), $show_label);
                         $download_link = html::a($download_link_attr + array('class' => 'download'), $download_label);
 
@@ -508,8 +514,6 @@ class thread_chats extends rcube_plugin {
         });
 
         $part_index = 0;
-        /** @var rcube_message $last_message */
-        $last_message = null;
         foreach($messages as $message) {
             $args['body'] .= '<hr style="border: 1px solid red;clear:both;" />';
 
@@ -526,29 +530,19 @@ class thread_chats extends rcube_plugin {
             $args['body'] .= $this->rcmail_message_body(array('name' => "messageChatBody{$part_index}",
                 'id' => "messageChatBody{$part_index}"), $message);
 
-            $part_index += 1;
-
-            $last_message = $message;
-        }
-
-        if ($last_message) {
             $args['body'] .= <<<EOT
-                <!--<br />-->
-                <!--<button onclick="parent.document.location='/?_task=mail&_reply_uid={$last_message->uid}&_mbox=Sent&_action=compose'">Reply</button>-->
-                <!--<button onclick="parent.document.location='/?_task=mail&_reply_uid={$last_message->uid}&_mbox=Sent&_all=all&_action=compose'">Reply all</button>-->
-                <!--<button onclick="parent.document.location='/?_task=mail&_forward_uid={$last_message->uid}&_mbox=INBOX&_action=compose'">Forward</button>-->
-                
-                <script type="text/javascript">
-                    parent.rcmail.env.uid = '{$last_message->uid}';
-                    parent.rcmail.env.mailbox = '{$last_message->folder}';
-                    // console.log(parent.rcmail.env.uid);
-                    // console.log(parent.rcmail.env.mailbox);
-                </script>
+                <br style="clear: both;" />
+                <button onclick="parent.document.location='/?_task=mail&_reply_uid={$message->uid}&_mbox=Sent&_action=compose'">Reply</button>
+                <button onclick="parent.document.location='/?_task=mail&_reply_uid={$message->uid}&_mbox=Sent&_all=all&_action=compose'">Reply all</button>
+                <button onclick="parent.document.location='/?_task=mail&_forward_uid={$message->uid}&_mbox=INBOX&_action=compose'">Forward</button>
 EOT;
 
+            $part_index += 1;
         }
 
-
+        if (!empty($messages)) {
+            $args['body'] .= '<div style="height: 10px;"></div>';
+        }
 
         return $args;
     }
