@@ -1,5 +1,5 @@
 {
-  "name": "bolsunovskyi/rcube-chats",
+  "name": "bolsunovskyi/rcube_threadchats",
   "type": "roundcube-plugin",
   "description": "Chats for messages",
   "license": "MIT",
