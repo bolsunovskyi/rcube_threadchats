@@ -1,6 +1,6 @@
 <?php
 
-class thread_chats extends rcube_plugin {
+class rcube_threadchats extends rcube_plugin {
     /**
      * @var rcmail
      */
