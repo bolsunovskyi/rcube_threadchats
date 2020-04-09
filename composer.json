@@ -1,7 +1,7 @@
 {
   "name": "bolsunovskyi/rcube_threadchats",
   "type": "roundcube-plugin",
-  "description": "Chats for messages",
+  "description": "Plugin to organize mail threads link chats (aka Gmail)",
   "license": "MIT",
   "version": "0",
   "authors": [
