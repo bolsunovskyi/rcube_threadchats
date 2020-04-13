@@ -614,7 +614,8 @@ class rcube_threadchats extends rcube_plugin {
 //                'id' => "messageChatPhoto{$part_index}"), $message);
 
             $args['body'] .= $this->rcmail_message_summary(array('name' => "messageChatSummary{$part_index}",
-                'id' => "messageChatSummary{$part_index}", ), $message,
+                'id' => "messageChatSummary{$part_index}", 'data-message-uid' => $message->uid,
+                'class' => 'thread-chat-summary'), $message,
                 $message->folder == $this->sentFolder ? 'to' : 'from');
 
 //            $args['body'] .= $this->rcmail_message_headers(array('name' => "messageChatHeaders{$part_index}",
@@ -644,29 +645,35 @@ EOT;
             if (isset($arr_prefs['rcube_threadchats']) && $arr_prefs['rcube_threadchats']['_collapse_history']) {
                 $args['body'] .= <<<EOT
 <script type="text/javascript">
-    var hideButtonBlock = function(uid) {
-      var buttons = document.getElementsByClassName('thread-button-block');
-      for (var i=0;i<buttons.length;i++) {
-          if (buttons[i].getAttribute('data-message-uid') === uid) {
-              buttons[i].style.display = 'none';
+    var styleUidBlock = function(uid, className, styleName, styleValue) {
+      var elements = document.getElementsByClassName(className);
+      for (var i=0;i<elements.length;i++) {
+          if (elements[i].getAttribute('data-message-uid') === uid) {
+              elements[i].style[styleName] = styleValue;
               break;
           }
       }
     };
     
     var showOriginalMessage = function(event) {
-        // console.log(event.currentTarget);
-        // console.log(event.currentTarget.parentNode);
-        var hiddenBody = event.currentTarget.parentNode.getElementsByClassName('message-previewed');
-        console.log(hiddenBody);
+        event.currentTarget.style.display = 'none';
+        var messageUid = event.currentTarget.getAttribute('data-message-uid');
+        if (!messageUid) {
+            return;
+        }
+        
+        styleUidBlock(messageUid, 'message-previewed', 'display', 'block');
+        styleUidBlock(messageUid, 'thread-button-block', 'display', 'block');
+        
+        styleUidBlock(messageUid, 'thread-chat-summary', 'background', '#cccccc');
+        styleUidBlock(messageUid, 'thread-chat-summary', 'cursor', 'pointer');
     };
     
     var addMessageCollapser = function(el) {
-        var textContent = el.textContent.replace(/\s\s+/g, ' ').replace(/(<([^>]+)>)/ig,"");
+        var textContent = el.textContent.replace(/\s\s+/g, ' ').replace(/(<([^>]+)>)/ig,"").trim();
         if (textContent.length > 100) {
             textContent = textContent.substring(0, 100) + '...';
         }
-        console.log(textContent);
         var div = document.createElement('div');
         div.classList.add('message-preview');
         div.innerText = textContent;
@@ -678,17 +685,46 @@ EOT;
         
         var messageUid = el.getAttribute('data-message-uid');
         if (messageUid) {
-            hideButtonBlock(messageUid);
+            div.setAttribute('data-message-uid', messageUid);
+            styleUidBlock(messageUid, 'thread-button-block', 'display', 'none');
         }
         
         div.addEventListener('click', showOriginalMessage);
     };
    
-    addMessageCollapser(document.getElementsByClassName('rcmBody')[0]);
+    var mainMessageBody = document.getElementsByClassName('rcmBody')[0];
+    mainMessageBody.classList.add('thread-chat-body');
+    mainMessageBody.setAttribute('data-message-uid', '{$MESSAGE->uid}');
+    // addMessageCollapser(mainMessageBody);
     
     var chatBodies = document.getElementsByClassName('thread-chat-body');
     for (var i=0;i<chatBodies.length - 1;i++) {
         addMessageCollapser(chatBodies[i]);
+    }
+    
+    var summaryClick = function(event) {
+        var messageUid = event.currentTarget.getAttribute('data-message-uid');
+        if (!messageUid) {
+            return;
+        }
+        
+        if (event.currentTarget.style.cursor === 'pointer') {
+            styleUidBlock(messageUid, 'thread-button-block', 'display', 'none');
+            styleUidBlock(messageUid, 'thread-chat-body', 'display', 'none');
+            styleUidBlock(messageUid, 'message-preview', 'display', 'block');
+            event.currentTarget.style.cursor = 'auto';
+            event.currentTarget.style.background = 'none';
+        }
+    };
+    
+    var mainMessageHeader = document.getElementById('message-header');
+    mainMessageHeader.addEventListener('click', summaryClick);
+    mainMessageHeader.classList.add('thread-chat-summary');
+    mainMessageHeader.setAttribute('data-message-uid', '{$MESSAGE->uid}');
+    
+    var chatSummary = document.getElementsByClassName('thread-chat-summary');
+    for (var i=0;i<chatSummary.length;i++) {
+        chatSummary[i].addEventListener('click', summaryClick);
     }
     
 </script>
