@@ -578,6 +578,10 @@ class rcube_threadchats extends rcube_plugin {
             return $args['body'];
         }
 
+        if (strpos($args['body'], '<body') === false) {
+            $args['body'] = "<body>{$args['body']}</body>";
+        }
+
         $message_id = $MESSAGE->get_header('Message-Id');
         /** @var rcube_imap_generic $connection */
         $connection = $this->rcmail->storage->conn;
@@ -641,7 +645,6 @@ EOT;
             $args['body'] .= '<div style="height: 10px;"></div>';
 
             $arr_prefs = $this->rcmail->user->get_prefs();
-            $arr_prefs['rcube_threadchats'] = array('_collapse_history' => true);
             if (isset($arr_prefs['rcube_threadchats']) && $arr_prefs['rcube_threadchats']['_collapse_history']) {
                 $args['body'] .= <<<EOT
 <script type="text/javascript">
@@ -670,7 +673,9 @@ EOT;
     };
     
     var addMessageCollapser = function(el) {
-        var textContent = el.textContent.replace(/\s\s+/g, ' ').replace(/(<([^>]+)>)/ig,"").trim();
+        // var textContent = el.textContent.replace(/\s\s+/g, ' ').replace(/(<([^>]+)>)/ig,"").trim();
+        // var textContent = el.textContent.replace(/\s+/g, ' ').replace(/(<([^>]+)>)/ig,"").trim();
+        var textContent = el.innerText.replace(/\s+/g, ' ').replace(/(<([^>]+)>)/ig,"").trim();
         if (textContent.length > 100) {
             textContent = textContent.substring(0, 100) + '...';
         }
