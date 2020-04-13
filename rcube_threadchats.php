@@ -15,6 +15,98 @@ class rcube_threadchats extends rcube_plugin {
         $this->draftFolder = $this->rcmail->config->get('drafts_mbox');
 
         $this->add_hook('message_part_after', array($this, 'message_part_after'));
+
+        if ($this->rcmail->task == 'settings') {
+            $this->add_texts('localization/', true);
+            $this->add_hook('settings_actions', array($this, 'settings_actions'));
+
+            $this->register_action('plugin.rcube_threadchats', array($this, 'rcube_threadchats_config'));
+            $this->register_action('plugin.rcube_threadchats-save', array($this, 'rcube_threadchats_save'));
+        }
+    }
+
+    function rcube_threadchats_save()
+    {
+        $user = $this->rcmail->user;
+        $arr_prefs = $user->get_prefs();
+
+        $_collapse_history = rcube_utils::get_input_value('_collapse_history', rcube_utils::INPUT_POST,
+            true);
+
+        if($_collapse_history && $_collapse_history == '1') {
+            $arr_prefs['rcube_threadchats'] = array('_collapse_history' => true);
+        } else {
+            $arr_prefs['rcube_threadchats'] = array('_collapse_history' => false);
+        }
+        $user->save_prefs($arr_prefs);
+
+        $this->register_handler('plugin.body', array($this, 'rcube_threadchats_form'));
+        $this->rcmail->output->set_pagetitle($this->gettext('thread_chats'));
+
+        $this->rcmail->overwrite_action('plugin.rcube_threadchats');
+        $this->rcmail->output->send('plugin');
+    }
+
+    function rcube_threadchats_config()
+    {
+        $this->register_handler('plugin.body', array($this, 'rcube_threadchats_form'));
+        $this->rcmail->output->set_pagetitle($this->gettext('thread_chats'));
+
+        $this->rcmail->output->send('plugin');
+    }
+
+    function rcube_threadchats_form()
+    {
+        $user = $this->rcmail->user;
+        $arr_prefs = $user->get_prefs();
+        $check_value = (isset($arr_prefs['rcube_threadchats']) &&
+            isset($arr_prefs['rcube_threadchats']['_collapse_history']) &&
+            $arr_prefs['rcube_threadchats']['_collapse_history']) ? '1': '0';
+
+        $table = new html_table(array('cols' => 2, 'class' => 'propform'));
+
+        $input_checkbox = new html_checkbox(array('name' => '_collapse_history', 'id' => 'collapse_history',
+            'checked' => false, 'value' => '1'));
+
+        $table->add('title', html::label('collapse_history', rcube::Q($this->gettext('collapse_history'))));
+        $table->add(null, $input_checkbox->show($check_value));
+
+        $this->rcmail->output->add_gui_object('threadchatsfrm', 'rcube_threadchats-form');
+
+        $this->include_script('rcube_threadchats.js');
+
+        $form = $this->rcmail->output->form_tag(array(
+            'id'     => 'rcube_threadchats-form',
+            'name'   => 'rcube_threadchats-form',
+            'method' => 'post',
+            'action' => './?_task=settings&_action=plugin.rcube_threadchats-save',
+        ), $table->show());
+
+        $submit_button = $this->rcmail->output->button(array(
+            'command' => 'plugin.rcube_threadchats-save',
+            'class'   => 'button mainaction submit',
+            'label'   => 'save',
+        ));
+        $form_buttons = html::p(array('class' => 'formbuttons footerleft'), $submit_button);
+
+        return html::div(array('id' => 'prefs-title', 'class' => 'boxtitle'), $this->gettext('thread_chats'))
+            . html::div(array('class' => 'box formcontainer scroller'),
+                html::div(array('class' => 'boxcontent formcontent'), $form)
+                . $form_buttons);
+    }
+
+    function settings_actions($args)
+    {
+        // register as settings action
+        $args['actions'][] = array(
+            'action' => 'plugin.rcube_threadchats',
+            'class'  => 'rcube_threadchats',
+            'label'  => 'thread_chats',
+            'title'  => 'thread_chats',
+            'domain' => 'rcube_threadchats',
+        );
+
+        return $args;
     }
 
     function rcmail_message_headers($attrib, $MESSAGE, $headers=null)
@@ -473,7 +565,8 @@ class rcube_threadchats extends rcube_plugin {
      * @param $args array('type' => $part->ctype_secondary, 'body' => $body, 'id' => $part->mime_id)
      * @return mixed
      */
-    function message_part_after($args) {
+    function message_part_after($args)
+    {
         global $MESSAGE;
 
         $part_type = $args['type'];
@@ -521,20 +614,23 @@ class rcube_threadchats extends rcube_plugin {
 //                'id' => "messageChatPhoto{$part_index}"), $message);
 
             $args['body'] .= $this->rcmail_message_summary(array('name' => "messageChatSummary{$part_index}",
-                'id' => "messageChatSummary{$part_index}"), $message,
+                'id' => "messageChatSummary{$part_index}", ), $message,
                 $message->folder == $this->sentFolder ? 'to' : 'from');
 
 //            $args['body'] .= $this->rcmail_message_headers(array('name' => "messageChatHeaders{$part_index}",
 //                'id' => "messageChatHeaders{$part_index}"), $message);
 
             $args['body'] .= $this->rcmail_message_body(array('name' => "messageChatBody{$part_index}",
-                'id' => "messageChatBody{$part_index}"), $message);
+                'id' => "messageChatBody{$part_index}", 'class' => 'thread-chat-body',
+                'data-message-uid' => $message->uid), $message);
 
             $args['body'] .= <<<EOT
+                <div class="thread-button-block" data-message-uid="{$message->uid}">
                 <br style="clear: both;" />
                 <button onclick="parent.document.location='?_task=mail&_reply_uid={$message->uid}&_mbox={$message->folder}&_action=compose'">Reply</button>
                 <button onclick="parent.document.location='?_task=mail&_reply_uid={$message->uid}&_mbox={$message->folder}&_all=all&_action=compose'">Reply all</button>
                 <button onclick="parent.document.location='?_task=mail&_forward_uid={$message->uid}&_mbox={$message->folder}&_action=compose'">Forward</button>
+                </div>
 EOT;
 
             $part_index += 1;
@@ -542,7 +638,68 @@ EOT;
 
         if (!empty($messages)) {
             $args['body'] .= '<div style="height: 10px;"></div>';
+
+            $arr_prefs = $this->rcmail->user->get_prefs();
+            $arr_prefs['rcube_threadchats'] = array('_collapse_history' => true);
+            if (isset($arr_prefs['rcube_threadchats']) && $arr_prefs['rcube_threadchats']['_collapse_history']) {
+                $args['body'] .= <<<EOT
+<script type="text/javascript">
+    var hideButtonBlock = function(uid) {
+      var buttons = document.getElementsByClassName('thread-button-block');
+      for (var i=0;i<buttons.length;i++) {
+          if (buttons[i].getAttribute('data-message-uid') === uid) {
+              buttons[i].style.display = 'none';
+              break;
+          }
+      }
+    };
+    
+    var showOriginalMessage = function(event) {
+        // console.log(event.currentTarget);
+        // console.log(event.currentTarget.parentNode);
+        var hiddenBody = event.currentTarget.parentNode.getElementsByClassName('message-previewed');
+        console.log(hiddenBody);
+    };
+    
+    var addMessageCollapser = function(el) {
+        var textContent = el.textContent.replace(/\s\s+/g, ' ').replace(/(<([^>]+)>)/ig,"");
+        if (textContent.length > 100) {
+            textContent = textContent.substring(0, 100) + '...';
         }
+        console.log(textContent);
+        var div = document.createElement('div');
+        div.classList.add('message-preview');
+        div.innerText = textContent;
+        div.style.background = '#cccccc';
+        div.style.cursor = 'pointer';
+        el.parentNode.insertBefore(div, el);
+        el.style.display = 'none';
+        el.classList.add('message-previewed');
+        
+        var messageUid = el.getAttribute('data-message-uid');
+        if (messageUid) {
+            hideButtonBlock(messageUid);
+        }
+        
+        div.addEventListener('click', showOriginalMessage);
+    };
+   
+    addMessageCollapser(document.getElementsByClassName('rcmBody')[0]);
+    
+    var chatBodies = document.getElementsByClassName('thread-chat-body');
+    for (var i=0;i<chatBodies.length - 1;i++) {
+        addMessageCollapser(chatBodies[i]);
+    }
+    
+</script>
+EOT;
+
+            }
+        }
+
+
+
+        //rcmBody
 
         return $args;
     }
