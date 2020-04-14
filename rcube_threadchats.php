@@ -613,7 +613,7 @@ class rcube_threadchats extends rcube_plugin {
         $part_index = 0;
         foreach($messages as $message) {
             if (empty($message->headers->flags['SEEN']) && $message->context === null) {
-                $this->rcmail->storage->set_flag([$message->uid], 'read', $message->folder);
+                $this->rcmail->storage->set_flag($message->uid, 'SEEN', $message->folder);
                 $this->rcmail->output->command('set_unread_message', $message->uid, $message->folder);
             }
 
