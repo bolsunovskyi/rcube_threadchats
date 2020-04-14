@@ -612,8 +612,11 @@ class rcube_threadchats extends rcube_plugin {
 
         $part_index = 0;
         foreach($messages as $message) {
-            $args['body'] .= '<hr style="border: 1px solid red;clear:both;" />';
+            if (empty($message->headers->flags['SEEN']) && $message->context === null) {
+                $this->rcmail->output->command('set_unread_message', $message->uid, $message->folder);
+            }
 
+            $args['body'] .= '<hr style="border: 1px solid red;clear:both;" />';
 //            $args['body'] .= $this->rcmail_message_contactphoto(array('name' => "messageChatPhoto{$part_index}",
 //                'id' => "messageChatPhoto{$part_index}"), $message);
 
