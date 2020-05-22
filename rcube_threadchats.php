@@ -569,10 +569,10 @@ class rcube_threadchats extends rcube_plugin {
     {
         global $MESSAGE;
 
-        $part_type = $args['type'];
-        if ($part_type != 'html') {
-            return $args['body'];
-        }
+//        $part_type = $args['type'];
+//        if ($part_type != 'html') {
+//            return $args['body'];
+//        }
 
         if ($MESSAGE->folder == $this->sentFolder || $MESSAGE->folder == $this->draftFolder) {
             return $args['body'];
